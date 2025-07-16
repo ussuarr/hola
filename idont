@@ -1,0 +1,129 @@
+// Malla completa con lógica de desbloqueo y créditos acumulados
+import { useState, useMemo } from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+
+const malla = [
+  {
+    "semestre": "I",
+    "asignaturas": [
+      { "nombre": "Álgebra", "creditos": 8, "requisitos": [] },
+      { "nombre": "Cálculo I", "creditos": 8, "requisitos": [] },
+      { "nombre": "Introducción a la Ing. Industrial", "creditos": 10, "requisitos": [] },
+      { "nombre": "Fundamentos Filosóficos", "creditos": 4, "requisitos": [] }
+    ]
+  },
+  {
+    "semestre": "II",
+    "asignaturas": [
+      { "nombre": "Álgebra Lineal", "creditos": 7, "requisitos": ["Álgebra"] },
+      { "nombre": "Cálculo II", "creditos": 7, "requisitos": ["Cálculo I"] },
+      { "nombre": "Química", "creditos": 6, "requisitos": [] },
+      { "nombre": "Comunicación Ingenieril", "creditos": 6, "requisitos": ["Introducción a la Ing. Industrial"] },
+      { "nombre": "Fundamentos Teológicos", "creditos": 4, "requisitos": ["Fundamentos Filosóficos"] }
+    ]
+  },
+  {
+    "semestre": "III",
+    "asignaturas": [
+      { "nombre": "Cálculo III", "creditos": 7, "requisitos": ["Cálculo II"] },
+      { "nombre": "Física I", "creditos": 8, "requisitos": ["Cálculo I"] },
+      { "nombre": "Probabilidades", "creditos": 6, "requisitos": ["Álgebra", "Cálculo I"] },
+      { "nombre": "Ética Profesional", "creditos": 4, "requisitos": ["Fundamentos Filosóficos"] }
+    ]
+  },
+  {
+    "semestre": "IV",
+    "asignaturas": [
+      { "nombre": "Ecuaciones Diferenciales", "creditos": 6, "requisitos": ["Cálculo III"] },
+      { "nombre": "Física II", "creditos": 8, "requisitos": ["Física I"] },
+      { "nombre": "Contabilidad y Costos", "creditos": 6, "requisitos": [] },
+      { "nombre": "Modelación y Simulación", "creditos": 6, "requisitos": ["Probabilidades"] }
+    ]
+  }
+  // Agrega más semestres aquí si lo deseas
+]; // será reemplazado con la malla completa
+
+export default function App() {
+  const [aprobadas, setAprobadas] = useState([]);
+
+  const toggleAprobada = (asig) => {
+    setAprobadas((prev) =>
+      prev.includes(asig) ? prev.filter((a) => a !== asig) : [...prev, asig]
+    );
+  };
+
+  const creditosAprobados = useMemo(() => {
+    return malla
+      .flatMap((sem) => sem.asignaturas)
+      .filter((a) => aprobadas.includes(a.nombre))
+      .reduce((sum, a) => sum + a.creditos, 0);
+  }, [aprobadas]);
+
+  const requisitosCumplidos = (requisitos) => {
+    return requisitos.every((req) =>
+      isNaN(parseInt(req))
+        ? aprobadas.includes(req)
+        : creditosAprobados >= parseInt(req)
+    );
+  };
+
+  return (
+    <div className="p-4">
+      <h1 className="text-2xl font-bold mb-4">Malla Ingeniería Civil Industrial</h1>
+      <p className="mb-6">Créditos aprobados: {creditosAprobados}</p>
+      <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
+        {malla.map((sem) => (
+          <div key={sem.semestre}>
+            <h2 className="text-xl font-bold mb-2">Semestre {sem.semestre}</h2>
+            <div className="flex flex-col gap-2">
+              {sem.asignaturas.map((asig) => {
+                const disponible = requisitosCumplidos(asig.requisitos);
+                const aprobada = aprobadas.includes(asig.nombre);
+                const estado = aprobada
+                  ? "aprobada"
+                  : disponible
+                  ? "disponible"
+                  : "bloqueada";
+
+                const estilos = {
+                  aprobada: "border-pink-700 bg-pink-200 line-through",
+                  disponible: "border-pink-400 bg-pink-100",
+                  bloqueada: "border-gray-300 bg-gray-100 opacity-50",
+                };
+
+                return (
+                  <Card
+                    key={asig.nombre}
+                    className={`transition-all border-2 ${estilos[estado]}`}
+                  >
+                    <CardContent className="p-4">
+                      <div className="flex items-center gap-2">
+                        <Checkbox
+                          checked={aprobada}
+                          onCheckedChange={() => toggleAprobada(asig.nombre)}
+                          disabled={estado === "bloqueada"}
+                        />
+                        <div>
+                          <p className="font-semibold">{asig.nombre}</p>
+                          <p className="text-sm text-gray-600">
+                            Créditos: {asig.creditos}
+                          </p>
+                          {asig.requisitos.length > 0 && (
+                            <p className="text-xs text-gray-500">
+                              Requiere: {asig.requisitos.join(", ")}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
